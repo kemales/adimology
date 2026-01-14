@@ -2,31 +2,27 @@ import type { Config } from "@netlify/functions";
 
 export default async (req: Request) => {
   try {
-    // Import the Next.js API route logic
     const baseUrl = process.env.URL || 'http://localhost:3000';
-    const secret = process.env.CRON_SECRET;
     
-    if (!secret) {
-      console.error('CRON_SECRET is not defined');
-      return new Response(JSON.stringify({ error: 'Configuration error' }), { status: 500 });
-    }
+    console.log(`[Scheduler] Triggering background job at ${baseUrl}/.netlify/functions/analyze-watchlist-background`);
 
-    console.log(`Triggering analysis job at ${baseUrl}/api/analyze-watchlist`);
-
-    const response = await fetch(`${baseUrl}/api/analyze-watchlist`, {
+    // Trigger background function - this returns 202 immediately
+    const response = await fetch(`${baseUrl}/.netlify/functions/analyze-watchlist-background`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${secret}`
       }
     });
 
-    const data = await response.json();
-    console.log('Analysis job result:', data);
+    console.log(`[Scheduler] Background job triggered, status: ${response.status}`);
 
-    return new Response(JSON.stringify(data), { status: response.status });
+    return new Response(JSON.stringify({
+      success: true,
+      message: 'Background job triggered',
+      status: response.status
+    }), { status: 200 });
   } catch (error) {
-    console.error('Netlify function error:', error);
+    console.error('[Scheduler] Netlify function error:', error);
     return new Response(JSON.stringify({
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error'
